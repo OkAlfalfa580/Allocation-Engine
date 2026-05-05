@@ -7,7 +7,7 @@ No build step, no server, no install. Open the HTML file in any modern browser.
 ## Quick start
 
 1. Download or clone this repo.
-2. Open `stock_allocation_dashboard.html` in Chrome / Edge / Firefox.
+2. Open `index.html` in Chrome / Edge / Firefox — or visit the [hosted version](https://okalfalfa580.github.io/Allocation-Engine/).
 3. Walk through the four-step wizard:
    1. **Upload** the three Excel files (order sheet, billing report, lot stock).
    2. **Set retailer priority** — rank 1 receives stock first from each lot.

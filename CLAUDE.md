@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-A single-file, zero-build, browser-based stock allocation dashboard for Levi's apparel distribution. The entire app is `stock_allocation_dashboard.html` — HTML, CSS, and JS in one file. It runs by double-clicking the file (or serving it statically); there is no Node, no bundler, no package manager. The only runtime dependency is the SheetJS (`xlsx`) library, loaded from cdnjs.
+A single-file, zero-build, browser-based stock allocation dashboard for Levi's apparel distribution. The entire app is `index.html` — HTML, CSS, and JS in one file. It runs by double-clicking the file (or serving it statically); there is no Node, no bundler, no package manager. The only runtime dependency is the SheetJS (`xlsx`) library, loaded from cdnjs.
 
-To "run" or test: open `stock_allocation_dashboard.html` in a browser. To iterate: edit and reload. There are no tests, no lint, no build step.
+To "run" or test: open `index.html` in a browser. To iterate: edit and reload. There are no tests, no lint, no build step.
 
 ## Domain inputs (what the user uploads)
 
