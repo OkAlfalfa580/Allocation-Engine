@@ -1,0 +1,12 @@
+# Real business data — never commit
+LEVIS PARTY CODE.xlsx
+LEVIS SS26 ORDER.xlsx
+SS26 BILLING DETAILS.xlsx
+*.zip
+
+# Local Claude settings
+.claude/settings.local.json
+
+# OS
+Thumbs.db
+.DS_Store
