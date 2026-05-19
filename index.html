@@ -265,7 +265,45 @@ tbody tr:last-child td{border-bottom:none}
   .config-summary{grid-template-columns:1fr}
   .download-grid{grid-template-columns:1fr}
   .lot-row{flex-direction:column}
+  .gs-sheets-grid{grid-template-columns:1fr}
+  .gs-banner{flex-direction:column;align-items:flex-start;gap:10px}
 }
+/* ─── GOOGLE SHEETS INTEGRATION ──────────────────────── */
+.gs-banner{
+  display:none;align-items:center;justify-content:space-between;
+  padding:12px 18px;background:rgba(29,185,84,0.06);
+  border:1px solid rgba(29,185,84,0.2);border-radius:4px;
+  margin-bottom:16px;gap:12px;
+}
+.gs-banner-left{display:flex;align-items:center;gap:12px}
+.gs-banner-icon{font-size:18px;color:var(--green);line-height:1}
+.gs-banner-title{font-size:11px;color:var(--green);letter-spacing:0.08em;text-transform:uppercase;font-weight:500}
+.gs-banner-sub{font-size:10px;color:var(--sub);margin-top:2px;letter-spacing:0.03em}
+.gs-banner-actions{display:flex;gap:8px;flex-shrink:0}
+.gs-config{
+  background:var(--card);border:1px solid var(--border2);border-radius:4px;
+  padding:20px;margin-bottom:16px;
+}
+.gs-config-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.gs-config-head-title{font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--sub)}
+.gs-close{background:transparent;border:none;color:var(--sub);font-size:16px;cursor:pointer;padding:2px 6px;line-height:1;border-radius:2px}
+.gs-close:hover{color:var(--text);background:var(--surface)}
+.gs-api-row{margin-bottom:16px}
+.gs-api-row .field-label{margin-bottom:6px}
+.gs-sheets-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.gs-sheet-card{background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:14px}
+.gs-sheet-label{font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--red);margin-bottom:10px;font-weight:500}
+.gs-sheet-card .text-input{margin-bottom:8px;font-size:11px}
+.gs-sheet-card .text-input:last-child{margin-bottom:0}
+.gs-config-footer{display:flex;justify-content:flex-end;gap:8px;padding-top:14px;border-top:1px solid var(--border)}
+.btn-gs{
+  display:flex;align-items:center;justify-content:center;gap:7px;
+  padding:9px 16px;background:rgba(29,185,84,0.07);border:1px solid rgba(29,185,84,0.25);
+  border-radius:3px;color:var(--green);font-size:11px;letter-spacing:0.1em;
+  text-transform:uppercase;transition:all 0.15s;width:100%;font-family:var(--font-mono);cursor:pointer;
+}
+.btn-gs:hover{background:rgba(29,185,84,0.15);border-color:var(--green)}
+.file-status.info{display:block;background:rgba(74,158,255,0.07);border:1px solid rgba(74,158,255,0.2);color:var(--blue)}
 </style>
 </head>
 <body>
@@ -307,8 +345,56 @@ tbody tr:last-child td{border-bottom:none}
   <!-- ═══ PANEL 1 — UPLOAD ══════════════════════════════ -->
   <div class="panel active" id="panel-1">
     <div class="section-head">
-      <h2>Upload Input Files</h2>
-      <p>Upload all three files to proceed. Drag &amp; drop or click to choose.</p>
+      <h2>Data Sources</h2>
+      <p>Connect Google Sheets for one-click refresh, or upload files directly. Both sources can be mixed.</p>
+    </div>
+
+    <!-- Google Sheets connected banner -->
+    <div class="gs-banner" id="gsBanner">
+      <div class="gs-banner-left">
+        <span class="gs-banner-icon">⬡</span>
+        <div>
+          <div class="gs-banner-title">Google Sheets Connected</div>
+          <div class="gs-banner-sub">Sheets are fetched fresh on every run — no re-uploading needed</div>
+        </div>
+      </div>
+      <div class="gs-banner-actions">
+        <button class="btn-secondary" onclick="fetchAllSheets()">↻ Refresh All</button>
+        <button class="btn-secondary" onclick="toggleGsConfig()">⚙ Settings</button>
+      </div>
+    </div>
+
+    <!-- Google Sheets config panel -->
+    <div class="gs-config" id="gsConfig" style="display:none">
+      <div class="gs-config-head">
+        <span class="gs-config-head-title">⬡ Google Sheets Configuration</span>
+        <button class="gs-close" onclick="toggleGsConfig()">✕</button>
+      </div>
+      <div class="gs-api-row">
+        <label class="field-label" for="gsApiKey">Google Sheets API Key</label>
+        <input class="text-input" id="gsApiKey" type="password" placeholder="AIzaSy..." autocomplete="off" style="max-width:480px">
+      </div>
+      <div class="gs-sheets-grid">
+        <div class="gs-sheet-card">
+          <div class="gs-sheet-label">File 01 — Order Sheet</div>
+          <input class="text-input" id="gsUrlOrder" placeholder="Paste Google Sheets URL or Sheet ID">
+          <input class="text-input" id="gsTabOrder" placeholder="Tab name (e.g. H2 25 ORDER FORM)">
+        </div>
+        <div class="gs-sheet-card">
+          <div class="gs-sheet-label">File 02 — Billing Report</div>
+          <input class="text-input" id="gsUrlBilled" placeholder="Paste Google Sheets URL or Sheet ID">
+          <input class="text-input" id="gsTabBilled" placeholder="Tab name (e.g. Report)">
+        </div>
+        <div class="gs-sheet-card">
+          <div class="gs-sheet-label">File 03 — Lot Stock</div>
+          <input class="text-input" id="gsUrlLot" placeholder="Paste Google Sheets URL or Sheet ID">
+          <input class="text-input" id="gsTabLot" placeholder="Tab name (e.g. Lot Stock)">
+        </div>
+      </div>
+      <div class="gs-config-footer">
+        <button class="btn-secondary" onclick="toggleGsConfig()">Cancel</button>
+        <button class="btn-primary" onclick="saveAndFetchAll()">Save &amp; Fetch All &rarr;</button>
+      </div>
     </div>
 
     <div class="upload-grid">
@@ -320,6 +406,7 @@ tbody tr:last-child td{border-bottom:none}
         <div class="card-title">Total Order Sheet</div>
         <div class="card-desc">Master retailer order file. Supports AW25 long format and SS26 wide/pivot format — auto-detected on upload.</div>
         <div class="card-actions" onclick="event.stopPropagation()">
+          <button class="btn-gs" onclick="loadFromGoogleSheets('order')">⬡ Fetch from Google Sheets</button>
           <button class="btn-upload" onclick="triggerFile('fileOrder')">&#8679; Choose File</button>
           <button class="btn-template" onclick="downloadTemplate('order')">&#8595; Download Template</button>
         </div>
@@ -335,6 +422,7 @@ tbody tr:last-child td{border-bottom:none}
         <div class="card-title">Items Billed / Sold</div>
         <div class="card-desc">Sales report of stock already billed. Expected sheet: <em>Report</em>. Headers on row 2 (row 1 is blank).</div>
         <div class="card-actions" onclick="event.stopPropagation()">
+          <button class="btn-gs" onclick="loadFromGoogleSheets('billed')">⬡ Fetch from Google Sheets</button>
           <button class="btn-upload" onclick="triggerFile('fileBilled')">&#8679; Choose File</button>
           <button class="btn-template" onclick="downloadTemplate('billed')">&#8595; Download Template</button>
         </div>
@@ -350,6 +438,7 @@ tbody tr:last-child td{border-bottom:none}
         <div class="card-title">New Lot Stock</div>
         <div class="card-desc">Stock received from company to be allocated. Columns auto-detected. Supports .xlsx and .xls formats.</div>
         <div class="card-actions" onclick="event.stopPropagation()">
+          <button class="btn-gs" onclick="loadFromGoogleSheets('lot')">⬡ Fetch from Google Sheets</button>
           <button class="btn-upload" onclick="triggerFile('fileLot')">&#8679; Choose File</button>
           <button class="btn-template" onclick="downloadTemplate('lot')">&#8595; Download Template</button>
         </div>
@@ -1404,6 +1493,164 @@ function downloadTemplate(type) {
 function today() {
   return new Date().toISOString().slice(0,10);
 }
+
+/* ─── GOOGLE SHEETS INTEGRATION ──────────────────────── */
+const GS_LS_KEY = 'levis_gs_config';
+
+function loadGsConfig() {
+  try { return JSON.parse(localStorage.getItem(GS_LS_KEY)) || null; } catch(e) { return null; }
+}
+function saveGsConfig(cfg) {
+  localStorage.setItem(GS_LS_KEY, JSON.stringify(cfg));
+}
+function parseSheetId(urlOrId) {
+  const m = String(urlOrId).match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+  return m ? m[1] : String(urlOrId).trim();
+}
+
+function toggleGsConfig() {
+  const el = document.getElementById('gsConfig');
+  const hidden = el.style.display === 'none' || el.style.display === '';
+  if(hidden){ populateGsConfigForm(); el.style.display = 'block'; }
+  else { el.style.display = 'none'; }
+}
+
+function populateGsConfigForm() {
+  const cfg = loadGsConfig();
+  if(!cfg) return;
+  document.getElementById('gsApiKey').value    = cfg.apiKey || '';
+  document.getElementById('gsUrlOrder').value  = (cfg.order  && cfg.order.sheetId)  || '';
+  document.getElementById('gsTabOrder').value  = (cfg.order  && cfg.order.tabName)  || '';
+  document.getElementById('gsUrlBilled').value = (cfg.billed && cfg.billed.sheetId) || '';
+  document.getElementById('gsTabBilled').value = (cfg.billed && cfg.billed.tabName) || '';
+  document.getElementById('gsUrlLot').value    = (cfg.lot    && cfg.lot.sheetId)    || '';
+  document.getElementById('gsTabLot').value    = (cfg.lot    && cfg.lot.tabName)    || '';
+}
+
+function readGsConfigForm() {
+  return {
+    apiKey: document.getElementById('gsApiKey').value.trim(),
+    order:  { sheetId: parseSheetId(document.getElementById('gsUrlOrder').value),  tabName: document.getElementById('gsTabOrder').value.trim() },
+    billed: { sheetId: parseSheetId(document.getElementById('gsUrlBilled').value), tabName: document.getElementById('gsTabBilled').value.trim() },
+    lot:    { sheetId: parseSheetId(document.getElementById('gsUrlLot').value),    tabName: document.getElementById('gsTabLot').value.trim() }
+  };
+}
+
+async function fetchSheetValues(sheetId, tabName, apiKey) {
+  const range = encodeURIComponent(tabName || 'Sheet1');
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}?key=${encodeURIComponent(apiKey)}`;
+  const res = await fetch(url);
+  if(!res.ok) {
+    const err = await res.json().catch(()=>({}));
+    throw new Error((err.error && err.error.message) || ('HTTP ' + res.status));
+  }
+  const json = await res.json();
+  return json.values || [];
+}
+
+function sheetValuesToObjects(values, headerRowIndex) {
+  headerRowIndex = headerRowIndex || 0;
+  if(values.length <= headerRowIndex) return [];
+  const headers = values[headerRowIndex].map(h => String(h).trim());
+  const rows = [];
+  for(let i = headerRowIndex + 1; i < values.length; i++) {
+    const row = {};
+    headers.forEach((h, j) => { row[h] = values[i][j] !== undefined ? values[i][j] : ''; });
+    rows.push(row);
+  }
+  return rows;
+}
+
+async function loadFromGoogleSheets(key) {
+  const cfg = loadGsConfig();
+  if(!cfg || !cfg.apiKey) { showToast('Configure Google Sheets first', 'err'); toggleGsConfig(); return; }
+  const sheetCfg = cfg[key];
+  if(!sheetCfg || !sheetCfg.sheetId) { showToast('No sheet configured for ' + key + ' — open Settings', 'err'); toggleGsConfig(); return; }
+
+  setFileStatus(key, 'info', '⬡ Fetching from Google Sheets...');
+  try {
+    // Billed sheet: headers on row index 1 (row 0 is blank)
+    const headerRowIndex = key === 'billed' ? 1 : 0;
+    const values = await fetchSheetValues(sheetCfg.sheetId, sheetCfg.tabName, cfg.apiKey);
+    const rows = sheetValuesToObjects(values, headerRowIndex);
+    if(!rows.length) { setFileStatus(key, 'err', 'No data found in sheet'); return; }
+
+    const sourceName = (sheetCfg.tabName || 'Sheet') + ' (Google Sheets)';
+    state.files[key] = { name: sourceName }; // satisfies proceedToStep2 validation
+
+    if(key === 'order') {
+      const fmt = detectOrderFormat(rows);
+      state.orderFormat = fmt;
+      if(fmt === 'wide') {
+        state.data.order = unpivotOrderSheet(rows);
+        if(!state.data.order.length) { setFileStatus(key,'err','Wide-format detected but no size quantities found'); return; }
+        if(!document.getElementById('seasonInput').value || document.getElementById('seasonInput').value === 'AW-25') {
+          document.getElementById('seasonInput').value = 'SS-26';
+          state.seasonFilter = 'SS-26';
+          updateSeasonBadge();
+        }
+      } else {
+        state.data.order = rows.map(r => ({...r, 'Party Name': String(r['Party Name']||'').trim(), 'Product Code': String(r['Product Code']||'').trim()}));
+      }
+      extractRetailersFromOrder();
+      const fmtBadge = fmt==='wide' ? '<span class="format-badge wide">SS26 Wide</span>' : '<span class="format-badge long">AW25 Long</span>';
+      const el = document.getElementById('stat-order');
+      el.className = 'file-status ok';
+      el.innerHTML = sourceName + ' &mdash; ' + state.data.order.length.toLocaleString() + ' lines &middot; ' + state.retailers.length + ' retailers ' + fmtBadge;
+
+    } else if(key === 'billed') {
+      state.data.billed = rows;
+      setFileStatus(key, 'ok', sourceName + ' — ' + rows.length.toLocaleString() + ' rows loaded');
+
+    } else if(key === 'lot') {
+      state.data.lot = rows;
+      const lotCol = findCol(rows, /lot/i);
+      if(lotCol && rows[0][lotCol]) {
+        const ln = String(rows[0][lotCol]).trim();
+        if(ln && !document.getElementById('lotNameInput').value) {
+          document.getElementById('lotNameInput').value = ln;
+          state.lotName = ln;
+        }
+      }
+      setFileStatus(key, 'ok', sourceName + ' — ' + rows.length.toLocaleString() + ' rows loaded');
+    }
+    showToast(key.charAt(0).toUpperCase() + key.slice(1) + ' fetched from Google Sheets');
+
+  } catch(err) {
+    setFileStatus(key, 'err', 'Fetch error: ' + err.message);
+    showToast('Failed to fetch ' + key + ': ' + err.message, 'err');
+  }
+}
+
+async function fetchAllSheets() {
+  await loadFromGoogleSheets('order');
+  await loadFromGoogleSheets('billed');
+  await loadFromGoogleSheets('lot');
+}
+
+async function saveAndFetchAll() {
+  const cfg = readGsConfigForm();
+  if(!cfg.apiKey) { showToast('API Key is required', 'err'); return; }
+  if(!cfg.order.sheetId || !cfg.billed.sheetId || !cfg.lot.sheetId) {
+    showToast('Please fill in all three sheet URLs/IDs', 'err'); return;
+  }
+  saveGsConfig(cfg);
+  document.getElementById('gsConfig').style.display = 'none';
+  document.getElementById('gsBanner').style.display = 'flex';
+  await fetchAllSheets();
+}
+
+// Auto-init: if config already saved, show banner and fetch on load
+(function initGs() {
+  const cfg = loadGsConfig();
+  if(cfg && cfg.apiKey) {
+    document.getElementById('gsBanner').style.display = 'flex';
+    fetchAllSheets();
+  } else {
+    // First visit — show config panel open
+    document.getElementById('gsConfig').style.display = 'block';
+  }
+})();
 
 function resetAll() {
   state.files = {order:null,billed:null,lot:null};
