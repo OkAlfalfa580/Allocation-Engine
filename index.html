@@ -1066,14 +1066,18 @@ function executeAllocation() {
         const itemName = String(r['ITEM NAME']||r['Item Name']||'').trim();
         productCode = itemName.split(/\s+/)[0];
       }
-      const size = parseSize(r['PACK/GRADE']||r['Pack/Grade']||r['SIZE']||r['Size']||'');
-      const qty  = parseInt(r['TOTAL QTY']||r['Total Qty']||r['Qty']||0)||0;
+      const size          = parseSize(r['PACK/GRADE']||r['Pack/Grade']||r['SIZE']||r['Size']||'');
+      const qty           = parseInt(r['TOTAL QTY']||r['Total Qty']||r['Qty']||0)||0;
+      // Billing → Order field mappings
+      const shadeName     = String(r['SHADE NAME']||r['Shade Name']||r['SHADE']||'').trim();       // → Color
+      const itemGroupName = String(r['ITEM GROUP NAME']||r['Item Group Name']||r['ITEM GROUP']||'').trim(); // → Category
+      const billingCat    = String(r['CATEGORY']||r['Category']||'').trim();                       // → Sub Category
       if(!partyName||!productCode||!size||qty===0) return; // allow negatives (returns/credit notes)
       if(qty < 0) negativeQtyCount++;
       if(!orderPartyNames.has(partyName)) unmatchedBilledParties.add(partyName);
       const key = `${partyName}||${productCode}||${size}`;
       if(billedMap[key]) { billedMap[key].billedQty += qty; }
-      else { billedMap[key] = { billedQty: qty, partyName, productCode, size }; }
+      else { billedMap[key] = { billedQty: qty, partyName, productCode, size, shadeName, itemGroupName, billingCat }; }
     });
     log('ok', `Billed map built: ${Object.keys(billedMap).length.toLocaleString()} unique retailer-article-size combos`);
     if(negativeQtyCount) log('info', `${negativeQtyCount} return/credit note rows found — quantities deducted from billed totals`);
@@ -1219,7 +1223,12 @@ function executeAllocation() {
       // Recalculate: over-billed condition
       if(billed > ordered) status = 'OVER-BILLED ⚠';
       const pct = ordered > 0 ? Math.round((billed+allocQty)/ordered*100) : 0;
-      return { ...p, allocQty, status, fulfilPct: pct, netRemaining: Math.max(0,ordered-billed-allocQty) };
+      // Enrich with billing-mapped fields when order fields are blank
+      const b = billedMap[key];
+      const color    = p.color    || (b ? b.shadeName     : '');
+      const category = p.category || (b ? b.itemGroupName : '');
+      const subCat   = p.subCat   || (b ? b.billingCat    : '');
+      return { ...p, color, category, subCat, allocQty, status, fulfilPct: pct, netRemaining: Math.max(0,ordered-billed-allocQty) };
     });
     // Append billed-but-not-ordered rows (Ordered = 0)
     Object.keys(billedMap).forEach(key => {
@@ -1228,8 +1237,10 @@ function executeAllocation() {
       fulfilmentRows.push({
         retailerCode: '', partyName: b.partyName,
         productCode: b.productCode, size: b.size,
-        gender: '', category: '', subCat: '',
-        styleName: '', color: '', fit: '',
+        gender: '', fit: '', styleName: '',
+        color:    b.shadeName     || '',   // SHADE NAME → Color
+        category: b.itemGroupName || '',   // ITEM GROUP NAME → Category
+        subCat:   b.billingCat    || '',   // Category (billing) → Sub Category
         orderedQty: 0, billedQty: b.billedQty,
         allocQty: 0, netRemaining: 0, fulfilPct: 0,
         status: 'OVER-BILLED ⚠'
