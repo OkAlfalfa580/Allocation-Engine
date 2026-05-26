@@ -770,8 +770,10 @@ function log(type, msg) {
   const line = document.createElement('div');
   line.className = 'log-line ' + type;
   line.innerHTML = `<span class="log-ts">${ts}</span><span class="log-msg">${icon} ${msg}</span>`;
+  line.style.cssText = 'opacity:0;transform:translateX(-8px);transition:opacity 0.18s ease,transform 0.18s ease';
   box.appendChild(line);
   box.scrollTop = box.scrollHeight;
+  requestAnimationFrame(() => { line.style.opacity='1'; line.style.transform='translateX(0)'; });
 }
 
 function clearLog() {
@@ -791,9 +793,15 @@ function setFileStatus(key, type, msg) {
   el.className = 'file-status ' + type;
   el.textContent = msg;
   const card = document.getElementById('card-'+key);
-  card.classList.remove('loaded','error-state');
+  card.classList.remove('loaded','error-state','shake');
   if(type==='ok') card.classList.add('loaded');
-  if(type==='err') card.classList.add('error-state');
+  if(type==='err') {
+    card.classList.add('error-state');
+    requestAnimationFrame(() => {
+      card.classList.add('shake');
+      card.addEventListener('animationend', () => card.classList.remove('shake'), {once:true});
+    });
+  }
 }
 
 /* ─── DRAG & DROP (file upload) ──────────────────────── */
@@ -1051,6 +1059,8 @@ function runAllocation() {
   }
   const runBtn = document.getElementById('runBtn');
   runBtn.disabled = true;
+  runBtn.classList.add('pulsing');
+  document.getElementById('progressBar').classList.add('running');
   clearLog();
   setProgress(0);
   setTimeout(executeAllocation, 80);
@@ -1295,6 +1305,9 @@ function executeAllocation() {
 
     showToast('Allocation complete! ' + totalAllocated.toLocaleString() + ' units allocated', 'ok');
 
+    // Stop pulse + glow
+    document.getElementById('runBtn').classList.remove('pulsing');
+    document.getElementById('progressBar').classList.remove('running');
     // Render results and navigate
     setTimeout(()=>{
       markDone(2); markDone(3);
@@ -1305,7 +1318,10 @@ function executeAllocation() {
   } catch(err) {
     log('err', 'Engine error: ' + err.message);
     showToast('Allocation failed: ' + err.message, 'err');
-    document.getElementById('runBtn').disabled = false;
+    const runBtnErr = document.getElementById('runBtn');
+    runBtnErr.disabled = false;
+    runBtnErr.classList.remove('pulsing');
+    document.getElementById('progressBar').classList.remove('running');
     setProgress(0);
     console.error(err);
   }
@@ -1313,10 +1329,10 @@ function executeAllocation() {
 
 /* ─── RENDER RESULTS ─────────────────────────────────── */
 function renderResults(lotTotal, allocated, unallocTotal, retailersServed) {
-  document.getElementById('statTotal').textContent = lotTotal.toLocaleString();
-  document.getElementById('statAlloc').textContent = allocated.toLocaleString();
-  document.getElementById('statUnalloc').textContent = unallocTotal.toLocaleString();
-  document.getElementById('statRetailers').textContent = retailersServed;
+  animateCounter(document.getElementById('statTotal'), lotTotal, 800);
+  animateCounter(document.getElementById('statAlloc'), allocated, 800);
+  animateCounter(document.getElementById('statUnalloc'), unallocTotal, 800);
+  animateCounter(document.getElementById('statRetailers'), retailersServed, 600);
   document.getElementById('statRetailersSub').textContent = `of ${state.retailers.length} total`;
 
   // Populate filters
@@ -1548,6 +1564,21 @@ function today() {
   return new Date().toISOString().slice(0,10);
 }
 
+/* ─── STAT COUNTER ───────────────────────────────────── */
+function animateCounter(el, target, duration) {
+  const start = performance.now();
+  function tick(now) {
+    const elapsed = now - start;
+    const progress = Math.min(elapsed / duration, 1);
+    const ease = 1 - Math.pow(1 - progress, 3); // easeOutCubic
+    const current = Math.round(target * ease);
+    el.textContent = current.toLocaleString();
+    if(progress < 1) requestAnimationFrame(tick);
+    else el.textContent = target.toLocaleString();
+  }
+  requestAnimationFrame(tick);
+}
+
 /* ─── GOOGLE SHEETS INTEGRATION ──────────────────────── */
 const GS_LS_KEY = 'levis_gs_config';
 
@@ -1729,7 +1760,10 @@ function resetAll() {
   document.getElementById('priorityList').innerHTML = '';
   clearLog();
   setProgress(0);
-  document.getElementById('runBtn').disabled = false;
+  const runBtnReset = document.getElementById('runBtn');
+  runBtnReset.disabled = false;
+  runBtnReset.classList.remove('pulsing');
+  document.getElementById('progressBar').classList.remove('running');
   // Reset step bar
   [1,2,3,4].forEach(i=>{
     document.getElementById('step-'+i).classList.remove('done','active');
