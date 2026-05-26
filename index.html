@@ -1055,6 +1055,7 @@ function executeAllocation() {
     const orderPartyNames = new Set(Object.values(orderMap).map(v=>v.partyName));
     const unmatchedBilledParties = new Set();
     let billedSkipped = 0;
+    let negativeQtyCount = 0;
     state.data.billed.forEach(r => {
       const season = String(r['SEASON']||r['Season']||'').trim();
       if(season !== state.seasonFilter) { billedSkipped++; return; }
@@ -1067,13 +1068,15 @@ function executeAllocation() {
       }
       const size = parseSize(r['PACK/GRADE']||r['Pack/Grade']||r['SIZE']||r['Size']||'');
       const qty  = parseInt(r['TOTAL QTY']||r['Total Qty']||r['Qty']||0)||0;
-      if(!partyName||!productCode||!size||qty<=0) return;
+      if(!partyName||!productCode||!size||qty===0) return; // allow negatives (returns/credit notes)
+      if(qty < 0) negativeQtyCount++;
       if(!orderPartyNames.has(partyName)) unmatchedBilledParties.add(partyName);
       const key = `${partyName}||${productCode}||${size}`;
       if(billedMap[key]) { billedMap[key].billedQty += qty; }
       else { billedMap[key] = { billedQty: qty, partyName, productCode, size }; }
     });
     log('ok', `Billed map built: ${Object.keys(billedMap).length.toLocaleString()} unique retailer-article-size combos`);
+    if(negativeQtyCount) log('info', `${negativeQtyCount} return/credit note rows found — quantities deducted from billed totals`);
     if(unmatchedBilledParties.size > 0)
       log('warn', `${unmatchedBilledParties.size} billed party names not found in order file`);
     setProgress(35);
@@ -1087,6 +1090,7 @@ function executeAllocation() {
       const billedQty = billedMap[key] ? billedMap[key].billedQty : 0;
       let netPending = o.orderedQty - billedQty;
       if(billedQty > o.orderedQty) { overBilledCount++; netPending = 0; }
+      netPending = Math.min(Math.max(0, netPending), o.orderedQty); // clamp: never below 0 or above ordered
       pendingMap[key] = { ...o, billedQty, netPending };
     });
     if(overBilledCount) log('warn', `${overBilledCount} items flagged as over-billed — treated as 0 pending`);
